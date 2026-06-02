@@ -13,6 +13,7 @@ export function ResultCallout({ result }: { result: RunResult | null }) {
     <AnimatePresence>
       {result && (
         <motion.div
+          key={result.ok ? "ok" : "error"}
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}

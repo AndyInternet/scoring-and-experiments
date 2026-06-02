@@ -2,7 +2,7 @@
 
 import { Flex, Select, Text, TextField } from "@radix-ui/themes";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { RunButton } from "./run-button";
 import { ResultCallout, type RunResult } from "./result-callout";
@@ -15,7 +15,16 @@ export function ScenarioRow({ scenario }: { scenario: Scenario }) {
   const [userId, setUserId] = useState("user-0001");
   const [forceVariant, setForceVariant] = useState<"control" | "challenger">("control");
 
+  // Reset-to-idle timer for the success state. Held in a ref so a fresh run (or
+  // unmount) can cancel it — otherwise a stale timer could clear the status of a
+  // run started within the 1.2s window.
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (resetTimer.current) clearTimeout(resetTimer.current);
+  }, []);
+
   async function run() {
+    if (resetTimer.current) clearTimeout(resetTimer.current);
     setStatus("loading");
     setResult(null);
     const params: TriggerParams = { count: Number(count) || 1 };
@@ -31,7 +40,7 @@ export function ScenarioRow({ scenario }: { scenario: Scenario }) {
       const data = (await res.json()) as RunResult;
       setResult(data);
       setStatus(data.ok ? "success" : "idle");
-      if (data.ok) setTimeout(() => setStatus("idle"), 1200);
+      if (data.ok) resetTimer.current = setTimeout(() => setStatus("idle"), 1200);
     } catch (err) {
       setResult({ ok: false, error: err instanceof Error ? err.message : "Request failed" });
       setStatus("idle");
@@ -62,7 +71,7 @@ export function ScenarioRow({ scenario }: { scenario: Scenario }) {
             )}
             {scenario.params.includes("forceVariant") && (
               <Select.Root value={forceVariant} onValueChange={(v) => setForceVariant(v as "control" | "challenger")}>
-                <Select.Trigger />
+                <Select.Trigger aria-label="Variant" />
                 <Select.Content>
                   <Select.Item value="control">control</Select.Item>
                   <Select.Item value="challenger">challenger</Select.Item>
