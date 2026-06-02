@@ -8,7 +8,14 @@ import { inngest } from "./client";
  */
 
 // 1. step.score() with a stepId => durable, STEP-scoped score. The recommended
-//    pattern. Emits one numeric and one boolean score against the same step.
+//    pattern. Emits one numeric and one boolean score.
+//
+//    Note the stepId equals the score's own memoization id (first arg). step.score
+//    wraps the write in a durable step; when stepId matches that step's id, the SDK
+//    routes the score through the batch path (see targetsCurrentStep in the SDK's
+//    InngestMetadata.ts) so it rides out on the same opcode as the score step — no
+//    extra round-trip. The stepId targets the score step itself; it does NOT need to
+//    reference another step.run() step.
 export const scoreStepDurable = inngest.createFunction(
   { id: "score-step-durable", retries: 0, triggers: { event: "scoring/step-durable.run" } },
   async ({ step }) => {
@@ -51,7 +58,8 @@ export const scoreLiveApi = inngest.createFunction(
       await inngest.score({ runId, name: "live-run-quality", value: 0.83 });
     });
     await step.run("score-step-live", async () => {
-      // step-scoped live write: target a step id explicitly.
+      // step-scoped live write: stepId targets the enclosing step.run id
+      // ("score-step-live"), so the score attaches to that step.
       await inngest.score({ runId, stepId: "score-step-live", name: "live-pass", value: true });
     });
     return { ok: true };
