@@ -46,10 +46,42 @@ keys are required locally — the SDK targets the dev server automatically.
 1. Push this directory to a git repo and import it into Vercel.
 2. Set `INNGEST_SIGNING_KEY` and `INNGEST_EVENT_KEY` (from Inngest Cloud) as env
    vars. With these present the SDK targets Inngest Cloud automatically.
-3. Register the app's `/api/inngest` URL in the Inngest Cloud dashboard.
-4. **Password protection:** enable it in Vercel → Project → Settings → Deployment
-   Protection → Password Protection (a paid Vercel feature). No app-level auth is
-   implemented by design.
+3. Register the app's **production** `/api/inngest` URL in the Inngest Cloud
+   dashboard — use the stable production domain (e.g.
+   `https://<your-app>.vercel.app/api/inngest`), **not** a deployment-specific
+   preview URL (`...-<hash>-....vercel.app`), which changes every deploy.
+
+## Deploying behind Vercel protection
+
+Vercel's Deployment Protection (Vercel Authentication or Password Protection)
+guards the **entire** deployment — including `/api/inngest`. Inngest reaches that
+endpoint with server-to-server HTTP calls for both the initial sync **and every
+function invocation**, and those calls can't log in through Vercel's auth wall. So
+protection that's left fully on blocks runs entirely (the sync fails with "We could
+not reach your URL", returning HTTP 401).
+
+To keep the browser UI protected while letting Inngest through, use **Protection
+Bypass for Automation**:
+
+1. Vercel → Project → Settings → Deployment Protection. Turn on the protection you
+   want for the UI (Vercel Authentication or Password Protection), and enable
+   **Protection Bypass for Automation**. Vercel generates a secret (also exposed as
+   the `VERCEL_AUTOMATION_BYPASS_SECRET` env var).
+2. Register the serve URL in Inngest Cloud **with the bypass as a query param**:
+   ```
+   https://<prod-domain>/api/inngest?x-vercel-protection-bypass=<SECRET>&x-vercel-set-bypass-cookie=true
+   ```
+   Inngest preserves this query string and appends its own params (`fnId`,
+   `stepId`, …), so both sync and runtime calls bypass the auth wall. Direct browser
+   visits to the app (without the secret) stay gated.
+3. Verify before syncing: `curl -sI "https://<prod-domain>/api/inngest?x-vercel-protection-bypass=<SECRET>"`
+   should return `200`, not `401`.
+
+Treat the bypass secret like a credential — anyone with it can reach protected
+deployments. Rotate it from the same settings page if leaked.
+
+Simpler alternative (no UI protection): turn Deployment Protection off entirely and
+register the bare production `/api/inngest` URL.
 
 ## Environment variables
 
