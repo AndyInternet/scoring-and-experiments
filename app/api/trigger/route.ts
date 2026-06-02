@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { inngest } from "@/inngest";
-import { dashboardBaseUrl } from "@/lib/dashboard";
+import { dashboardRunsUrl } from "@/lib/dashboard";
 import { getScenario, type TriggerParams } from "@/lib/scenarios";
 
 export async function POST(req: Request) {
@@ -35,6 +35,8 @@ export async function POST(req: Request) {
   return NextResponse.json({
     ok: true,
     count,
-    dashboardUrl: `${dashboardBaseUrl()}/runs`,
+    // Each scenario key matches its function id, so the link lands on that
+    // function's runs (cloud) or the global runs feed (dev server).
+    dashboardUrl: dashboardRunsUrl(scenario.key),
   });
 }

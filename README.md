@@ -92,3 +92,4 @@ See `.env.example`. All are optional for local development.
 | `INNGEST_SIGNING_KEY`  | Set in production to target Inngest Cloud.                    |
 | `INNGEST_EVENT_KEY`    | Event ingestion key for Inngest Cloud.                        |
 | `DASHBOARD_URL`        | Override the base URL used for "view run" links.              |
+| `INNGEST_ENV`          | Cloud env slug in dashboard run links (default `production`). |
