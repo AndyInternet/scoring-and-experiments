@@ -6,9 +6,9 @@ import { useEffect, useRef, useState } from "react";
 
 import { RunButton } from "./run-button";
 import { ResultCallout, type RunResult } from "./result-callout";
-import type { Scenario, TriggerParams } from "@/lib/scenarios";
+import type { Scenario, Transport, TriggerParams } from "@/lib/scenarios";
 
-export function ScenarioRow({ scenario }: { scenario: Scenario }) {
+export function ScenarioRow({ scenario, transport }: { scenario: Scenario; transport: Transport }) {
   const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
   const [result, setResult] = useState<RunResult | null>(null);
   const [count, setCount] = useState("1");
@@ -27,7 +27,7 @@ export function ScenarioRow({ scenario }: { scenario: Scenario }) {
     if (resetTimer.current) clearTimeout(resetTimer.current);
     setStatus("loading");
     setResult(null);
-    const params: TriggerParams = { count: Number(count) || 1 };
+    const params: TriggerParams = { count: Number(count) || 1, transport };
     if (scenario.params.includes("userId")) params.userId = userId;
     if (scenario.params.includes("forceVariant")) params.forceVariant = forceVariant;
 

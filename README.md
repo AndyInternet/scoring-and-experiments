@@ -9,6 +9,21 @@ them (via `/api/trigger`, which calls `inngest.send()`). The UI is trigger-only 
 fire a scenario, then follow the dashboard link to inspect the resulting run, its
 scores, and experiment attribution.
 
+## Two apps: HTTP and Connect
+
+The same 8 functions are registered as **two separate Inngest apps** that differ
+only in transport:
+
+| App id                                | Transport            | Trigger events            |
+| ------------------------------------- | -------------------- | ------------------------- |
+| `scoring-and-experiments-demo`        | HTTP (`/api/inngest`)| `scoring/…`, `experiments/…` |
+| `scoring-and-experiments-connect-demo`| `connect()` WebSocket| `connect/scoring/…`, `connect/experiments/…` |
+
+The function definitions live in factories (`inngest/scoring.ts`,
+`inngest/experiments.ts`) that take a client + event prefix, so both apps share one
+source of truth. The UI's **HTTP / Connect** toggle picks which app a Run button
+fires (the trigger route prefixes the event with `connect/` for the connect app).
+
 ## Run locally
 
 ```bash
@@ -19,14 +34,33 @@ npx inngest-cli@latest dev
 
 # In another: the app (serves functions at /api/inngest and the UI)
 pnpm dev
+
+# Optional third terminal: the connect-worker app (for the "Connect" transport)
+pnpm connect
 ```
 
 Open http://localhost:3000, click a scenario's **Run** button, then follow the
 "View in dashboard" link to http://localhost:8288/runs to inspect the run, its
 scores, and (for experiments) the variant attribution.
 
-The dev server auto-discovers the app at `http://localhost:3000/api/inngest`. No
-keys are required locally — the SDK targets the dev server automatically.
+The dev server auto-discovers the HTTP app at `http://localhost:3000/api/inngest`.
+No keys are required locally — the SDK targets the dev server automatically.
+
+### Connect worker
+
+`pnpm connect` runs the second app (`inngest/connect-worker.ts`) as a standalone
+WebSocket worker against the dev server's connect gateway. It registers itself on
+connect — no HTTP endpoint or auto-discovery needed. Use the UI's **Connect**
+toggle (or POST `/api/trigger` with `"transport":"connect"`) to fire its functions.
+
+Notes:
+
+- The connect SDK needs a global `WebSocket`. Node 22+ has one built in; on older
+  Node the worker polyfills it from the `ws` package, so `pnpm connect` works on
+  Node 20+.
+- The connect worker is a long-running process — it does **not** run on Vercel.
+  Run it on a host/container that can hold a persistent connection (or just locally
+  against the dev server).
 
 ## Scenarios
 

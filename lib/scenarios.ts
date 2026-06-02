@@ -14,10 +14,15 @@ export type Scenario = {
   buildData: (params: TriggerParams) => Record<string, unknown>;
 };
 
+export type Transport = "http" | "connect";
+
 export type TriggerParams = {
   count?: number;
   userId?: string;
   forceVariant?: "control" | "challenger";
+  // Which app to trigger: the HTTP/serve app or the connect-worker app. The
+  // trigger route prefixes the event with "connect/" for the connect app.
+  transport?: Transport;
 };
 
 const EXPECTED = "42"; // deterministic correct answer for the mock variants

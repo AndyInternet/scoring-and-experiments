@@ -1,12 +1,7 @@
-import type { InngestFunction } from "inngest";
-
 import { inngest } from "./client";
-import * as experiments from "./experiments";
-import * as scoring from "./scoring";
+import { buildFunctions } from "./functions";
 
-export const functions = [
-  ...Object.values(scoring),
-  ...Object.values(experiments),
-] as InngestFunction.Any[];
+// The HTTP/serve app: functions trigger on the bare event names (no prefix).
+export const functions = buildFunctions(inngest);
 
 export { inngest };

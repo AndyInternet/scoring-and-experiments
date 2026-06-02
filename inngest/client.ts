@@ -1,10 +1,6 @@
-import { Inngest } from "inngest";
-import { scoreMiddleware } from "inngest/experimental";
+import { makeClient } from "./make-client";
 
-// scoreMiddleware() gates step.score(); without it the tool throws at call time.
-// No keys => SDK targets the local dev server. With INNGEST_SIGNING_KEY /
-// INNGEST_EVENT_KEY set (e.g. on Vercel) it targets Inngest Cloud automatically.
-export const inngest = new Inngest({
-  id: "scoring-and-experiments-demo",
-  middleware: [scoreMiddleware()],
-});
+// The HTTP/serve app client. No keys => SDK targets the local dev server. With
+// INNGEST_SIGNING_KEY / INNGEST_EVENT_KEY set (e.g. on Vercel) it targets Inngest
+// Cloud automatically. scoreMiddleware() (added in makeClient) gates step.score().
+export const inngest = makeClient("scoring-and-experiments-demo");
