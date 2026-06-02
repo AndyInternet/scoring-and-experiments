@@ -1,0 +1,15 @@
+@import "@radix-ui/themes/styles.css";
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/* Respect reduced-motion globally for the Motion micro-interactions. */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
