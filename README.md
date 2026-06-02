@@ -80,42 +80,27 @@ Notes:
 1. Push this directory to a git repo and import it into Vercel.
 2. Set `INNGEST_SIGNING_KEY` and `INNGEST_EVENT_KEY` (from Inngest Cloud) as env
    vars. With these present the SDK targets Inngest Cloud automatically.
-3. Register the app's **production** `/api/inngest` URL in the Inngest Cloud
+3. Set `APP_PASSWORD` to gate the UI (see "Password protection" below).
+4. Register the app's **production** `/api/inngest` URL in the Inngest Cloud
    dashboard — use the stable production domain (e.g.
    `https://<your-app>.vercel.app/api/inngest`), **not** a deployment-specific
    preview URL (`...-<hash>-....vercel.app`), which changes every deploy.
 
-## Deploying behind Vercel protection
+## Password protection
 
-Vercel's Deployment Protection (Vercel Authentication or Password Protection)
-guards the **entire** deployment — including `/api/inngest`. Inngest reaches that
-endpoint with server-to-server HTTP calls for both the initial sync **and every
-function invocation**, and those calls can't log in through Vercel's auth wall. So
-protection that's left fully on blocks runs entirely (the sync fails with "We could
-not reach your URL", returning HTTP 401).
+A lightweight, app-level password gate (Next.js middleware) protects every route
+**except `/api/inngest`**, which must stay open so Inngest Cloud can sync and invoke
+functions over server-to-server HTTP. The login page (`/login`) is also open.
 
-To keep the browser UI protected while letting Inngest through, use **Protection
-Bypass for Automation**:
+- Set `APP_PASSWORD` in Vercel (Project → Settings → Environment Variables).
+- When it's set, unauthenticated page requests redirect to `/login`; submitting the
+  correct password sets an httpOnly cookie (a SHA-256 token of the password, valid
+  7 days) and the rest of the app unlocks. Other API routes return `401` until then.
+- When `APP_PASSWORD` is unset (e.g. local dev), the gate is disabled.
 
-1. Vercel → Project → Settings → Deployment Protection. Turn on the protection you
-   want for the UI (Vercel Authentication or Password Protection), and enable
-   **Protection Bypass for Automation**. Vercel generates a secret (also exposed as
-   the `VERCEL_AUTOMATION_BYPASS_SECRET` env var).
-2. Register the serve URL in Inngest Cloud **with the bypass as a query param**:
-   ```
-   https://<prod-domain>/api/inngest?x-vercel-protection-bypass=<SECRET>&x-vercel-set-bypass-cookie=true
-   ```
-   Inngest preserves this query string and appends its own params (`fnId`,
-   `stepId`, …), so both sync and runtime calls bypass the auth wall. Direct browser
-   visits to the app (without the secret) stay gated.
-3. Verify before syncing: `curl -sI "https://<prod-domain>/api/inngest?x-vercel-protection-bypass=<SECRET>"`
-   should return `200`, not `401`.
-
-Treat the bypass secret like a credential — anyone with it can reach protected
-deployments. Rotate it from the same settings page if leaked.
-
-Simpler alternative (no UI protection): turn Deployment Protection off entirely and
-register the bare production `/api/inngest` URL.
+This is intentionally low-security (single shared password), which is why
+`/api/inngest` can be left open: it's protected by Inngest request signing in
+production, not by this gate. Don't rely on it for sensitive data.
 
 ## Environment variables
 
@@ -127,3 +112,4 @@ See `.env.example`. All are optional for local development.
 | `INNGEST_EVENT_KEY`    | Event ingestion key for Inngest Cloud.                        |
 | `DASHBOARD_URL`        | Override the base URL used for "view run" links.              |
 | `INNGEST_ENV`          | Cloud env slug in dashboard run links (default `production`). |
+| `APP_PASSWORD`         | Password gating all routes except `/api/inngest`. Unset = open. |
